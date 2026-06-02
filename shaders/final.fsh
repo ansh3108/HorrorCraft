@@ -4,6 +4,7 @@ uniform sampler2D colortex0;
 uniform float frameTimeCounter;
 uniform vec3 cameraPosition;
 uniform float rainStrength;
+uniform vec3 fogColor;
 
 in vec2 texcoord;
 
@@ -50,7 +51,25 @@ void main() {
     vec3 c = vec3(r, g, b);
 
     float luma = dot(c, vec3(0.299, 0.587, 0.114));
-    c = mix(vec3(luma), c, 0.55);
+    
+    float lumaFog = dot(fogColor, vec3(0.299, 0.587, 0.114));
+    float nightFactor = 1.0 - smoothstep(0.02, 0.15, lumaFog);
+    float currentSaturation = mix(0.55, 0.08, nightFactor);
+    
+    c = mix(vec3(luma), c, currentSaturation);
+
+    float breathTimer = fract(frameTimeCounter * 0.35);
+    vec2 breathUV = uv - vec2(0.0, -0.4);
+    breathUV.y -= breathTimer * 0.2;
+    float breathRadius = mix(0.1, 0.6, breathTimer);
+    float breathDist = length(breathUV) / breathRadius;
+    float breathMask = smoothstep(1.0, 0.0, breathDist);
+    float vapor = sin(breathUV.x * 30.0 + frameTimeCounter * 2.0) * cos(breathUV.y * 30.0 - frameTimeCounter * 3.0);
+    vapor = vapor * 0.5 + 0.5;
+    float breathFade = smoothstep(0.0, 0.2, breathTimer) * smoothstep(1.0, 0.6, breathTimer);
+    float breathAlpha = breathMask * vapor * breathFade * 0.15;
+    float isFreezing = max(step(85.0, cameraPosition.y), step(lumaFog, 0.05));
+    c = mix(c, vec3(0.8, 0.9, 1.0), breathAlpha * isFreezing);
 
     float darkness = 1.0 - smoothstep(0.0, 0.4, luma);
     float distFromCenter = length(uv * distortion);
@@ -76,4 +95,3 @@ void main() {
 
     color = vec4(c, 1.0);
 }
-
