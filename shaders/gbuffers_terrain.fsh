@@ -35,6 +35,9 @@ void main() {
     lm.x -= artificialLight * topShadow * 0.85;
     lm.x = clamp(lm.x, 0.0, 1.0);
     
+    lm.y = pow(lm.y, 7.0);
+    
+    // Apply the manipulated lightmap
     color *= texture(lightmap, lm);
     
     if (color.a < 0.1) discard;
